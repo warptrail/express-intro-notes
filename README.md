@@ -122,6 +122,14 @@ Totally forgot to git init. I'm rusty, that's why I'm documenting this all again
 2. `git init`
 3. `git add .`
 4. `git commit -m "first commit" `
+5. Log onto Github
+6. Create new Repository called something along the lines of "my-express-boilerplate"
+7. Follow the instructions on the quick setup page to push your repo to github
+8. Create a new branch: `git branch logging`
+9. Switch to new branch to apply new features: `git checkout logging`
+10. Create a new branch from the current branch:
+
+    `git checkout -b feature/new-feature`
 
 # Logging
 
@@ -136,5 +144,21 @@ const morgan = require('morgan');
 const app = express();
 app.use(morgan('dev'));
 
-...
 ```
+
+# Nodemon
+
+`npm install nodemon --save-dev`
+
+add following script to `package.json`:
+
+```
+"scripts": {
+    "start": "node app",
+    "dev": "nodemon app"
+},
+```
+
+Then start server in development mode
+
+`npm run dev`
