@@ -162,3 +162,30 @@ add following script to `package.json`:
 Then start server in development mode
 
 `npm run dev`
+
+# Install CORS
+
+["Cross-Origin Resource Sharing"](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
+
+`npm install cors`
+
+# Actually do it all at once:
+
+## Recap:
+
+```
+mkdir nytServer && cd $_
+npm init -y
+touch app.js
+npm install nodemon-D
+npm install morgan cors express
+<Follow eslint & prettier instructions (optional)>
+```
+
+modify package.json:
+
+```
+"scripts": {
+    "start": "nodemon app"
+},
+```

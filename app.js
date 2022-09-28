@@ -1,16 +1,20 @@
 const express = require('express');
 const morgan = require('morgan');
+const cors = require('cors');
+
+const books = require('./newyorktimesbestsellersData.js');
 
 const app = express();
 // This is middleware that requests pass through
 // on their way to the final handler
-app.use(morgan('dev'));
+app.use(morgan('common'));
+app.use(cors());
 
 // This is the final request handler
 app.get('/', (req, res) => {
   res.send('Hello Express!');
 });
-
+// ! Test Routes
 // Add a route
 app.get('/burgers', (req, res) => {
   res.send('We have juicy cheese burgers here.');
@@ -61,6 +65,32 @@ app.get('/nothing', (req, res) => {
   res.status(204).end();
   // This ends the request
   // and the response is sent as is back to the client.
+});
+
+//! New York Times Best Sellers API
+
+app.get('/books', (req, res) => {
+  const { search = ' ', sort } = req.query;
+
+  const results = books.filter((book) =>
+    book.title.toLowerCase().includes(search.toLocaleLowerCase())
+  );
+
+  // input validation required for sort
+
+  if (sort) {
+    if (!['title', 'rank'].includes(sort)) {
+      res.status(400).send('Sort must be one of title or rank');
+    }
+  }
+
+  if (sort) {
+    results.sort((a, b) =>
+      a[sort] > b[sort] ? 1 : a[sort] < b[sort] ? -1 : 0
+    );
+  }
+
+  res.json(results);
 });
 
 // typically want port between 1024 and 65535
