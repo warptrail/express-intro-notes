@@ -169,6 +169,8 @@ Then start server in development mode
 
 `npm install cors`
 
+Short version - this just allows for servers on different domains to talk to one another.
+
 # Actually do it all at once:
 
 ## Recap:
@@ -178,7 +180,7 @@ mkdir nytServer && cd $_
 npm init -y
 touch app.js
 npm install nodemon-D
-npm install morgan cors express
+npm install morgan cors dotenv express
 <Follow eslint & prettier instructions (optional)>
 ```
 
@@ -188,4 +190,184 @@ modify package.json:
 "scripts": {
     "start": "nodemon app"
 },
+```
+
+# Authorization
+
+For now, real JWT authorization is outside the scope of this project.
+We will use a hacky shortcut for generating tokens
+
+DO NOT USE IN REAL LIFE
+
+## Introduction to ENV
+
+Environment variables -- not accessible in source code (aka - keep things secret from github)
+
+Go to [uuidgenerator.net](https://www.uuidgenerator.net/version1) to generate a unique token - save in a txt file for reference
+
+Our application needs to use this UUID when it's validating every request by checking the request's headers.
+
+Environment variables need to be set before server starts so Node can access them using process.env. Close server in a command line and then use the env command to print current environment variables.
+
+`echo $USER` --> pints out system username
+
+How to set the UUID as a environment variable from the CLI.
+
+```
+# save the env var
+export API_TOKEN=put-your-uuid-here
+# print out the env var to check it worked
+echo $API_TOKEN
+# you should see your UUID printed in the command line
+```
+
+and to see the new `API_TOKEN` ENV variable from Express type:
+
+` console.log(process.env.API_TOKEN);
+
+### Note: setting ENV variables this way are only temporary and bound to the specific terminal window. When server restarts - ENV variables must be re-declared.
+
+We can add a temporary ENV variable by prefixing each server start command such as:
+
+```
+API_TOKEN=foo node server.js
+```
+
+It would be terrible to manually re-enter the key every time server resets. We will use a `.env' file and it is important to have git ignore this file so the key is not in source code.
+
+# How to set up .env file
+
+![keep it secret - keep it safe](./img/1mp8zb.gif)
+
+Make a file called `.env` and append it to your `.gitignore`.
+
+❗️ WE DO NOT WANT THIS FILE ON GITHUB ❗️
+
+```
+touch .env
+echo ".env" >> .gitignore
+```
+
+Store your uuid token in the `.env file`
+
+```
+API_TOKEN=put-your-token-here
+```
+
+## dotenv
+
+Install a package that automatically syncs the `process.env` object with what is listed in the `.env` file
+
+`npm install dotenv`
+
+Add the dotenv config file to the top of your app.
+
+```
+require('dotenv').config();
+```
+
+# How to use tokens
+
+Adding middleware to validate requests for `.get('/types')` and `.get('/ pokemon')` - so only authorized elite trainers have access to the data.
+
+```
+app.use(function validateBearerToken(req, res, next) {
+  const apiToken = process.env.API_TOKEN
+  const authToken = req.get('Authorization')
+
+  if (!authToken || authToken.split(' ')[1] !== apiToken) {
+    return res.status(401).json({ error: 'Unauthorized request' })
+  }
+  // move to the next middleware
+  next()
+})
+```
+
+Every request requires
+
+`Authorization: "2b2d2a8e-3ee9-11ed-b878-0242ac120002"`
+
+in Postman "Headers" to work with the requireAuth is being required on all endpoints
+
+to use in a specific endpoint:
+
+`app.get('/types', validateBearerToken, handleGetTypes);`
+
+`app.get('/pokemon', validateBearerToken, handleGetPokemon);`
+
+`app.get('/any-path', middleware1, middleware2, middleware3, ...)`
+
+# Pokemon Search
+
+Example GET query
+
+`http://localhost:8000/pokemon?name=PsyDuCk&type=Water`
+
+Use Fetchful app for client-side Interface
+
+```
+git clone https://github.com/tomatau/fetchful.git
+cd ./fetchful
+npm i
+```
+
+Change the fetch request to the following function:
+
+```
+  performFetch = () =>
+    fetch('http://localhost:8000/pokemon?name=pik&type=Electric', {
+      headers: {
+        Authorization: 'Bearer 2b2d2a8e-3ee9-11ed-b878-0242ac120002',
+      },
+    });
+```
+
+![fetchful screenshot](./img/fetchful_screenshot.png)
+
+# Helmet
+
+There is a security vulnerability when browsers are making api calls directly from the server like this. A bunch of information is connected with the requests, and some of that should be hidden and Express does not do it on it's own. Install Helmet to all Express Apps.
+
+`npm install helmet`
+
+```
+const helmet = require('helmet');
+app.use(morgan('dev'))
+app.use(helmet)
+app.use(cors())
+```
+
+Make sure to place helmet before cors in the pipeline. With helmet in place, restart your API and make the request from Fetchful
+
+X-Powered-By header will be removed and others were added
+
+[helmet documentation](https://github.com/helmetjs/helmet#how-it-works)
+
+# Routers
+
+Divide the API into modules so the `app.js` file doesn't get bloated.
+
+1. Create new file called `test-router.js`
+2. Add the following template code
+
+```
+const express = require('express');
+
+const testRouter = express.Router();
+
+function getHelloWorld(req, res) {
+  res.send('hello world');
+}
+
+testRouter.route('/').get(getHelloWorld);
+
+module.exports = testRouter;
+
+```
+
+3. In the `app.js` - import the router
+
+```
+const testRouter = require('./test-router');
+app.use('/some-endpoint', testRouter);
 ```

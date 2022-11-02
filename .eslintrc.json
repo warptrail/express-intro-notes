@@ -28,6 +28,8 @@
     "no-process-exit": "off",
     "class-methods-use-this": "off",
     "import/extensions": "off",
-    "no-nested-ternary": "off"
+    "no-nested-ternary": "off",
+    "consistent-return": "off",
+    "radix": "warn"
   }
 }
