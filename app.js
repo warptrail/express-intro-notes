@@ -5,13 +5,15 @@ const helmet = require('helmet');
 const cors = require('cors');
 
 // Router Imports
-const testRouter = require('./test-router');
-const moviesRouter = require('./movies-router');
+const testRouter = require('./routers/test-router');
+const moviesRouter = require('./routers/movies-router');
 
 // Data Imports
-const books = require('./newyorktimesbestsellersData.js');
-const POKEDEX = require('./pokedex.json');
+const books = require('./data/newyorktimesbestsellersData.js');
+const POKEDEX = require('./data/pokedex.json');
+const validPokemonTypes = require('./data/validPokemonTypes');
 
+// This is the backend app
 const app = express();
 // This is middleware that requests pass through
 // on their way to the final handler
@@ -19,11 +21,25 @@ app.use(morgan('common'));
 app.use(helmet());
 app.use(cors());
 
-// test ENV variable
+// test ENV variable for secrets... like login authentication codes
 console.log(process.env.API_TOKEN);
+
+function requestInfoObject(req) {
+  return `Here are some details of your request:
+  Base URL: ${req.baseUrl}
+  Host: ${req.hostname}
+  Path: ${req.path}
+  Route: ${JSON.stringify(req.route)}
+  protocol: ${req.protocol}
+  originalUrl: ${req.originalUrl}
+  subdomains: ${req.subdomains}
+  stale?: ${req.stale}
+  `;
+}
 
 // ? Validation Middleware
 app.use((req, res, next) => {
+  // This will come from the client's request in the header when they fetch
   const authToken = req.get('Authorization');
 
   const apiToken = process.env.API_TOKEN;
@@ -33,6 +49,19 @@ app.use((req, res, next) => {
     return res.status(401).json({ error: 'Unauthorized request' });
   }
   // move to the next middleware
+  next();
+});
+
+// next middleware a timestamp on requests received
+// Simple request time logger
+app.use((req, res, next) => {
+  console.log(`A new request received at ${Date.now()}`);
+  console.log('wow wow wow');
+  console.log(requestInfoObject(req));
+
+  // This function call is very important. It tells that more processing is
+  // required for the current request and is in the next middleware
+  // function route handler.
   next();
 });
 
@@ -46,14 +75,37 @@ app.get('/burgers', (req, res) => {
   res.send('We have juicy cheese burgers here.');
 });
 
+app.get('/pizza', (req, res) => {
+  res.send('We have pizza!');
+});
+
+app.get('/pizza/pepperoni', (req, res) => {
+  res.send('We have pepperoni pizza!');
+});
+
+app.get('/pizza/pineapple', (req, res) => {
+  res.send('You have chosen wisely.');
+});
+
+app.get('/salad', (req, res) => {
+  res.status(500).send('No Salad for you!');
+});
+
 // Send information about the request object
+
 app.get('/echo', (req, res) => {
-  const responseText = `Here are some details of your request:
-      Base URL: ${req.baseUrl}
-      Host: ${req.hostname}
-      Path: ${req.path}
-  `;
-  res.send(responseText);
+  res.send(requestInfoObject(req));
+});
+
+// instead of res.send('a string') use res.json({data})
+
+app.get('/video', (req, res) => {
+  const video = {
+    title: 'Star Trek',
+    description: 'Boldly going where no man has gone before',
+    length: '100.3',
+  };
+  res.json(video);
 });
 
 app.get('/queryViewer', (req, res) => {
@@ -92,6 +144,49 @@ app.get('/nothing', (req, res) => {
   // and the response is sent as is back to the client.
 });
 
+app.get('/requestitself', (req, res) => {
+  const request = req;
+  console.log(typeof request);
+  res.status(202);
+  res.end();
+});
+
+// ! Grade API
+app.get('/grade', (req, res) => {
+  // get the mark from the query
+  const { mark } = req.query;
+
+  // do some validation
+  if (!mark) {
+    // if no mark
+    res.status(400).send('Please provide a mark');
+  }
+  const numericMark = parseFloat(mark);
+  if (Number.isNaN(numericMark)) {
+    // if mark is not a number
+    res.status(400).send('Mark must be a numeric value');
+  }
+  if (numericMark < 0 || numericMark > 100) {
+    // mark must be in range 0 to 100
+    res.status(400).send('Mark must be in range 0 to 100');
+  }
+
+  if (numericMark >= 90) {
+    res.send('A');
+  }
+  if (numericMark >= 80) {
+    res.send('B');
+  }
+  if (numericMark >= 70) {
+    res.send('C');
+  }
+  if (numericMark >= 60) {
+    res.send('D');
+  }
+
+  res.send('F');
+});
+
 //! New York Times Best Sellers API
 
 app.get('/books', (req, res) => {
@@ -109,6 +204,7 @@ app.get('/books', (req, res) => {
     }
   }
 
+  // ? Basic Sorting Function:
   if (sort) {
     results.sort((a, b) =>
       a[sort] > b[sort] ? 1 : a[sort] < b[sort] ? -1 : 0
@@ -123,30 +219,9 @@ app.get('/books', (req, res) => {
 // Here it becomes more important to have the callback function
 // as a named function for reusability
 
-const validTypes = [
-  `Bug`,
-  `Dark`,
-  `Dragon`,
-  `Electric`,
-  `Fairy`,
-  `Fighting`,
-  `Fire`,
-  `Flying`,
-  `Ghost`,
-  `Grass`,
-  `Ground`,
-  `Ice`,
-  `Normal`,
-  `Poison`,
-  `Psychic`,
-  `Rock`,
-  `Steel`,
-  `Water`,
-];
-
 const handleGetTypes = (req, res) => {
   console.log(process.env.API_TOKEN);
-  res.json(validTypes);
+  res.json(validPokemonTypes);
 };
 
 app.get('/types', handleGetTypes);
@@ -176,7 +251,9 @@ const handleGetPokemon = (req, res) => {
 
 app.get('/pokemon', handleGetPokemon);
 
-// Movies App:
+// ! Movies App:
+// Here we are putting the routes in another file as the app.js file is
+// getting to be too large
 app.use('/some-endpoint', testRouter);
 app.use('/movies', moviesRouter);
 
@@ -184,5 +261,6 @@ app.use('/movies', moviesRouter);
 
 const PORT = 8000;
 app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`Express server is listening on port ${PORT}`);
 }); // go to localhost:8000 to see GET response

@@ -1,8 +1,8 @@
 const express = require('express');
 
-const data = require('./movies-data.json');
+const data = require('../data/movies-data.json');
 
-const generateRandomArrayNoRep = require('./randNumNoRep');
+const generateRandomArrayNoRep = require('../helpers/randNumNoRep');
 
 const moviesRouter = express.Router();
 

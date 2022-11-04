@@ -343,7 +343,7 @@ X-Powered-By header will be removed and others were added
 
 [helmet documentation](https://github.com/helmetjs/helmet#how-it-works)
 
-# Routers
+# Modularized Routers
 
 Divide the API into modules so the `app.js` file doesn't get bloated.
 
@@ -371,3 +371,36 @@ module.exports = testRouter;
 const testRouter = require('./test-router');
 app.use('/some-endpoint', testRouter);
 ```
+
+# Endpoint Map
+
+GET '/'
+GET '/burgers'
+GET '/pizza'
+GET '/pizza/pepperoni'
+GET 'pizza/pineapple'
+GET '/salad' -- (returns intentional error status 500 - No salad for you)
+
+# Notes
+
+The express module exports a top-level function.
+
+That function creates a new application object that encapsulates
+
+## the functionality of your Express server.
+
+Think of Express like a factory with an assembly line. Each handler function is a station along that assembly line. As the request progresses along the assembly line, each handler function may modify it. Eventually, the request gets to the final handler function in the line and a response is sent back to the client.
+
+Middleware functions are functions that have access to the request object (req), the response object (res), and the next middleware function in the application’s request-response cycle. These functions are used to modify req and res objects for tasks like parsing request bodies, adding response headers, etc.
+
+[tutorials point about Express Middleware](https://www.tutorialspoint.com/expressjs/expressjs_middleware.htm)
+
+req is an object that represents the HTTP request and has methods to access the various properties of that request.
+
+[request object documentation](https://expressjs.com/en/4x/api.html#req)
+
+Note to Self: See notes in Notes app for more info on Express
+
+command line to change a file:
+
+`echo "# express-intro-notes" >> README.md`
